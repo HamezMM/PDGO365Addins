@@ -20,13 +20,14 @@
     <TargetOfficeVersion Condition=" '$(TargetOfficeVersion)' == '' ">16.0</TargetOfficeVersion>
     <TargetOfficePlatform Condition="'$(TargetOfficePlatform)' == ''">x64</TargetOfficePlatform>
     <LangVersion>9.0</LangVersion>
-    <!-- VSTO always signs its deployment manifests (.vsto / .dll.manifest) — even a plain
-         build and F5 debug. ManifestCertificateThumbprint points at a code-signing cert in
-         the building user's CurrentUser\My store; it is NOT in the repo. Each dev machine
-         and CI agent must create its own once — see SheetToTxt/SETUP.md "Signing certificate".
-         For ClickOnce production rollout, swap in a real code-signing cert. See CLAUDE.md §11. -->
+    <!-- VSTO always signs its deployment manifests (.vsto / .dll.manifest) — plain build,
+         F5, and Publish alike. This thumbprint is the shared "PDG Code Signing" cert; its
+         public half is deploy/PDG-CodeSigning.cer (committed), its private key is the
+         password-protected .pfx held outside the repo. Import the .pfx into your
+         CurrentUser\My once — see deploy/README.md. Every team machine that runs the add-in
+         must also trust the .cer (deploy/Install-SheetToTxt.ps1 does this). -->
     <SignManifests>true</SignManifests>
-    <ManifestCertificateThumbprint>9D10D4DD5A4328A2D16DB5F184E8F898EF769299</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>CD2816561ED07ACF6C0F05C705A43B5197AB7F32</ManifestCertificateThumbprint>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -45,6 +46,31 @@
     <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- ClickOnce publish settings for team distribution. `msbuild /t:Publish` writes the
+       deployment (setup.exe, SheetToTxt.vsto, Application Files\) to PublishDir; put that
+       folder in the OneDrive-synced SharePoint location so it propagates to the team.
+       PublishDir is passed on the command line (it is a per-machine local path) by
+       deploy\Publish-SheetToTxt.ps1. Install/Update URLs are the https address of that
+       same SharePoint folder. Bump the version with the publish script. See deploy\README.md. -->
+  <PropertyGroup>
+    <PublisherName>Peake Design</PublisherName>
+    <ProductName>SheetToTxt</ProductName>
+    <PublishUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</PublishUrl>
+    <SupportUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</SupportUrl>
+    <InstallUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</InstallUrl>
+    <UpdateUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</UpdateUrl>
+    <!-- VSTO forces install="false" in the .vsto; setup.exe carries InstallUrl instead
+         (needs IsWebBootstrapper=true). The VSTO runtime re-checks that URL every Office
+         start (UpdateInterval 0 when UpdateEnabled=true) and pulls new versions. -->
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <IsWebBootstrapper>true</IsWebBootstrapper>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <SignatureAlgorithm>sha256RSA</SignatureAlgorithm>
+    <ApplicationVersion>1.0.0.0</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
   </PropertyGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Framework.4.8">

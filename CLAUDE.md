@@ -27,7 +27,7 @@ This is **not** the Office.js / "Office Add-ins" web model. Ignore
 | **VS workload "Office/SharePoint development"** (`Microsoft.VisualStudio.Workload.Office`) | ✅ installed 2026-09-01 (`--add Microsoft.VisualStudio.Workload.Office --includeRecommended`). See §3 if it ever needs reinstalling. |
 | .NET Framework 4.8 targeting pack | ✅ |
 | VSTO Runtime v4 | ✅ |
-| **Code-signing cert for manifest signing** | ⚠️ **Per-machine, not in repo.** VSTO signs `.vsto`/`.dll.manifest` on every build (plain `msbuild` and F5 both). Create a self-signed dev cert once and put its thumbprint in each project's `.csproj` `<ManifestCertificateThumbprint>` — see `SheetToTxt/SETUP.md` "Signing certificate". |
+| **Shared "PDG Code Signing" cert** | Public half committed (`deploy/PDG-CodeSigning.cer`, thumbprint `CD28165…AB7F32`); private `.pfx` held outside the repo. VSTO signs `.vsto`/`.dll.manifest` on every build. Import the `.pfx` into `CurrentUser\My` once to build/F5 — see `SheetToTxt/SETUP.md`. Distribution + renewal: `deploy/README.md`. |
 | Excel | Microsoft 365, 64-bit (`Office16`) |
 | MSBuild | `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe` |
 
@@ -212,16 +212,27 @@ selected` = no signing cert on this machine. Fix per `SheetToTxt/SETUP.md`.
 ## 11. Deployment
 
 VSTO add-ins are activated by registry keys pointing Office at a `.vsto` deployment
-manifest.
+manifest, which must be signed by a certificate the machine trusts.
 
-| Method | Use |
+**SheetToTxt ships via ClickOnce → the synced SharePoint folder. Everything is in
+`deploy/` — see `deploy/README.md`.** In short:
+
+- One shared **PDG Code Signing** cert (`deploy/PDG-CodeSigning.cer` public; private
+  `.pfx` outside the repo). `<ManifestCertificateThumbprint>` in the `.csproj` pins it.
+- `deploy/Publish-SheetToTxt.ps1` → `msbuild /t:Publish` (Release) into
+  `…\Peake Design - Documents\SOFTWARE RESOURCES\O365\SheetToTxt`. `IsWebBootstrapper=true`
+  bakes the https `InstallUrl` into `setup.exe`; the VSTO runtime re-checks it each Office
+  start and auto-updates (`UpdateInterval` 0).
+- Team runs `deploy/Install-SheetToTxt.ps1` from their synced copy: trusts the `.cer`
+  (CurrentUser Root + TrustedPublisher), runs `setup.exe`.
+
+| Other method | Use |
 | --- | --- |
-| **F5 / local build** | Dev only; registers for the current user. |
-| **ClickOnce** (VS ▸ Publish → network share) | Internal rollout to PDG staff; auto-updates on version bump. Manifests must be signed — VS makes a test cert; use a real code-signing cert for production. Set `SignManifests=true` + `ManifestCertificateThumbprint` in the `.csproj` for this. |
-| **MSI (WiX / Advanced Installer)** | When IT wants a per-machine managed package. The installer writes `HKLM\…\Office\Excel\Addins\<Name>` with `FriendlyName`, `Description`, `LoadBehavior=3`, `Manifest=<path>\<Name>.vsto|vstolocal`. |
+| **F5 / local build** | Dev only; registers for the current user. Needs the shared cert's `.pfx` imported to `CurrentUser\My` (see `SETUP.md`). |
+| **MSI (WiX / Advanced Installer)** | If IT ever wants a per-machine managed package: writes `HKLM\…\Office\Excel\Addins\<Name>` (`LoadBehavior=3`, `Manifest=<path>\<Name>.vsto|vstolocal`). |
 
 End-user machines need the **VSTO Runtime** (ships with modern Office) and **.NET
-Framework 4.8** (in-box on Windows 10 1903+ / 11).
+Framework 4.8** (in-box on Windows 10 1903+ / 11), plus the trusted `.cer`.
 
 ## 12. References
 

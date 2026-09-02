@@ -21,7 +21,9 @@
 app.publish/
 publish/
 
-# Signing (keep test keys out of source control)
+# Signing — private keys never go in the repo. The PDG Code Signing private key
+# lives at %USERPROFILE%\Documents\PDG-Signing\PDG-CodeSigning.pfx.
+# deploy/PDG-CodeSigning.cer (public only) IS committed on purpose.
 *.pfx
 *.snk
 
