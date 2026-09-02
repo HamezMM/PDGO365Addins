@@ -24,9 +24,10 @@ This is **not** the Office.js / "Office Add-ins" web model. Ignore
 | Requirement | This machine (checked 2026-09-01) |
 | --- | --- |
 | Visual Studio 2022 Community 17.14 | `C:\Program Files\Microsoft Visual Studio\2022\Community` |
-| **VS workload "Office/SharePoint development"** (`Microsoft.VisualStudio.Workload.Office`) | ❌ **NOT installed. Nothing builds until it is — see §3.** |
+| **VS workload "Office/SharePoint development"** (`Microsoft.VisualStudio.Workload.Office`) | ✅ installed 2026-09-01 (`--add Microsoft.VisualStudio.Workload.Office --includeRecommended`). See §3 if it ever needs reinstalling. |
 | .NET Framework 4.8 targeting pack | ✅ |
 | VSTO Runtime v4 | ✅ |
+| **Code-signing cert for manifest signing** | ⚠️ **Per-machine, not in repo.** VSTO signs `.vsto`/`.dll.manifest` on every build (plain `msbuild` and F5 both). Create a self-signed dev cert once and put its thumbprint in each project's `.csproj` `<ManifestCertificateThumbprint>` — see `SheetToTxt/SETUP.md` "Signing certificate". |
 | Excel | Microsoft 365, 64-bit (`Office16`) |
 | MSBuild | `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe` |
 
@@ -36,15 +37,43 @@ The workload supplies `Microsoft.VisualStudio.Tools.Office.targets` (the VSTO bu
 targets), the design-time assemblies the projects reference, and the project templates.
 `SheetToTxt.csproj` emits a clear build error if the targets are missing.
 
-Claude cannot run this — **ask the user** to run one of:
+**Claude may run this install directly.** Prefer the CLI over asking the user. Run from
+the Bash or PowerShell tool:
 
-- VS Installer GUI ▸ Modify ▸ check **Office/SharePoint development** ▸ Modify.
-- Elevated shell:
+```powershell
+& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify `
+  --installPath "C:\Program Files\Microsoft Visual Studio\2022\Community" `
+  --add Microsoft.VisualStudio.Workload.Office --includeRecommended `
+  --quiet --norestart
+```
+
+- Flags are `--quiet --norestart` only. **Do not pass `--wait`** — this installer
+  (`setup.exe` 4.4.x) rejects it with `Option 'wait' is unknown` and exit code `87`.
+  `setup.exe --quiet` already blocks until the install completes and returns its exit
+  code; the install can take 5–15 min, so raise the tool `timeout` to ~900000 ms (or run
+  it backgrounded and poll `vswhere`). Exit codes: `0` = success, `3010` = success +
+  reboot pending, `1` / other = failure (inspect
+  `%TEMP%\dd_setup_*.log` and
+  `%ProgramData%\Microsoft\VisualStudio\Packages\_Instances\<id>\logs\`).
+- **Elevation:** the installer needs admin rights, and a `--quiet` run **cannot** raise a
+  UAC prompt — if the session is not elevated it fails immediately. Check first:
+  ```powershell
+  ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+    ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
   ```
-  "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify ^
-    --installPath "C:\Program Files\Microsoft Visual Studio\2022\Community" ^
-    --add Microsoft.VisualStudio.Workload.Office --includeRecommended --passive
-  ```
+  If that is `False`, or the install exits with an elevation error (`5007` =
+  "commands with --quiet or --passive should be run elevated from the beginning", `740`,
+  `1602`, `1223`), **fall back to asking the user** to run the command from an elevated
+  PowerShell, or VS Installer GUI ▸ Modify ▸ check **Office/SharePoint development** ▸
+  Modify. On this machine the interactive account (`AzureAD\JamesMckinnon`) is **not** a
+  local administrator, so in practice the user has to run it elevated themselves — tell
+  them to paste the block above into an elevated shell, or use `! <command>` after
+  launching Claude Code elevated.
+- Verify afterward:
+  `& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -products * -requires Microsoft.VisualStudio.Workload.Office -property installationPath`
+  should print the VS path. Also confirm
+  `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VisualStudio\v17.0\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets`
+  now exists.
 
 VS 2026+ deprecates the VSTO templates (the runtime stays supported). If the templates
 are gone, copy an existing project folder as the starting point (§6) instead of
@@ -73,10 +102,14 @@ Repo root: `PDGO365Addins.sln` (one solution, one project per add-in), `.gitigno
 ## 5. Build, run, debug
 
 ```
-# from repo root, after the workload is installed
+# from repo root, after the workload is installed AND a signing cert exists (SETUP.md)
 & "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" `
   PDGO365Addins.sln /t:Restore,Build /p:Configuration=Debug
 ```
+
+Build error `The "ManageCertificateStore" task was not given a value for the required
+parameter "CertificateThumbprint"` or `the ClickOnce manifest signing option is not
+selected` = no signing cert on this machine. Fix per `SheetToTxt/SETUP.md`.
 
 - **F5 in Visual Studio** is the normal loop: builds, writes the COM-add-in registry
   keys under `HKCU\Software\Microsoft\Office\Excel\Addins\<Name>` (`LoadBehavior=3`,

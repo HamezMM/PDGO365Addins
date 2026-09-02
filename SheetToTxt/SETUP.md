@@ -7,18 +7,40 @@ Excel's "Text (Tab delimited)" format.
 ## One-time prerequisite (required before the project will build)
 
 The Visual Studio **"Office/SharePoint development"** workload is **not installed** on this
-machine. Nothing builds without it. Install via **one** of:
+machine. Nothing builds without it. Claude can install it directly (see CLAUDE.md §3);
+otherwise install via **one** of:
 
 - Visual Studio Installer ▸ *Modify* ▸ check **Office/SharePoint development** ▸ *Modify*.
 - Elevated shell:
   ```
   "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify ^
     --installPath "C:\Program Files\Microsoft Visual Studio\2022\Community" ^
-    --add Microsoft.VisualStudio.Workload.Office --includeRecommended --passive
+    --add Microsoft.VisualStudio.Workload.Office --includeRecommended ^
+    --quiet --norestart --wait
   ```
 
 That installs `Microsoft.VisualStudio.Tools.Office.targets`, the VSTO project templates,
 and the design-time assemblies the checked-in files reference.
+
+## Signing certificate (one-time per machine — required before the project will build)
+
+VSTO signs its deployment manifests (`.vsto`, `.dll.manifest`) on **every** build,
+including plain `msbuild` and F5. `SheetToTxt.csproj` has `SignManifests=true` and a
+`ManifestCertificateThumbprint`; the certificate itself is **not** in the repo (`.gitignore`
+excludes `*.pfx`, and thumbprints are machine-specific). Each dev machine and CI agent
+creates its own self-signed dev cert once:
+
+```powershell
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=PDG SheetToTxt Dev Cert' `
+  -CertStoreLocation Cert:\CurrentUser\My -KeyUsage DigitalSignature `
+  -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(5) `
+  -FriendlyName 'PDG SheetToTxt Dev Cert (VSTO manifest signing)'
+$cert.Thumbprint   # paste into <ManifestCertificateThumbprint> in SheetToTxt.csproj
+```
+
+If your thumbprint differs from the one committed in the `.csproj`, update that element
+locally (don't commit the change unless the team's shared value is rotating). For a
+ClickOnce production rollout, swap in a real code-signing cert — see `CLAUDE.md` §11.
 
 ## Build & run
 

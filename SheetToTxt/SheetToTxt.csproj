@@ -20,9 +20,13 @@
     <TargetOfficeVersion Condition=" '$(TargetOfficeVersion)' == '' ">16.0</TargetOfficeVersion>
     <TargetOfficePlatform Condition="'$(TargetOfficePlatform)' == ''">x64</TargetOfficePlatform>
     <LangVersion>9.0</LangVersion>
-    <!-- ClickOnce publish (production) needs signed manifests + a real code-signing
-         certificate. Plain build and F5 debug do not. See CLAUDE.md section 10. -->
-    <SignManifests>false</SignManifests>
+    <!-- VSTO always signs its deployment manifests (.vsto / .dll.manifest) — even a plain
+         build and F5 debug. ManifestCertificateThumbprint points at a code-signing cert in
+         the building user's CurrentUser\My store; it is NOT in the repo. Each dev machine
+         and CI agent must create its own once — see SheetToTxt/SETUP.md "Signing certificate".
+         For ClickOnce production rollout, swap in a real code-signing cert. See CLAUDE.md §11. -->
+    <SignManifests>true</SignManifests>
+    <ManifestCertificateThumbprint>9D10D4DD5A4328A2D16DB5F184E8F898EF769299</ManifestCertificateThumbprint>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
