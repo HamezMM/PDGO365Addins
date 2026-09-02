@@ -54,13 +54,28 @@ if (-not (Test-Path "Cert:\CurrentUser\My\$thumb")) {
 New-Item -ItemType Directory -Force -Path $PublishDir | Out-Null
 
 # --- publish ---------------------------------------------------------------
-& $msbuild $csproj `
-    /t:Publish `
-    /p:Configuration=Release `
-    /p:ApplicationVersion=$Version `
-    /p:PublishDir=$($PublishDir.TrimEnd('\') + '\') `
-    /v:minimal /nologo
-if ($LASTEXITCODE -ne 0) { throw "msbuild /t:Publish failed ($LASTEXITCODE)" }
+# Pass args via an MSBuild response file: PublishDir contains spaces and a
+# trailing separator, which PowerShell's native-arg quoting mangles ("\"" eats
+# the following tokens). A .rsp file is read literally - no shell parsing.
+$rsp = [System.IO.Path]::GetTempFileName() + '.rsp'
+@(
+    "`"$csproj`""
+    '/t:Publish'
+    '/p:Configuration=Release'
+    "/p:ApplicationVersion=$Version"
+    # trailing '\\' inside the quotes -> one '\' after arg parsing (a lone '\"'
+    # would escape the quote and swallow the next tokens).
+    "/p:PublishDir=`"$($PublishDir.TrimEnd('\'))\\`""
+    '/v:minimal'
+    '/nologo'
+) | Set-Content -Path $rsp -Encoding UTF8
+try {
+    & $msbuild "@$rsp"
+    if ($LASTEXITCODE -ne 0) { throw "msbuild /t:Publish failed ($LASTEXITCODE)" }
+}
+finally {
+    Remove-Item $rsp -ErrorAction SilentlyContinue
+}
 
 # --- drop the install helpers alongside ----------------------------------
 Copy-Item (Join-Path $PSScriptRoot 'PDG-CodeSigning.cer')    $PublishDir -Force
