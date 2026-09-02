@@ -25,6 +25,17 @@ namespace SheetToTxt.Ribbon
 
         public void OnLoad(IRibbonUI ribbonUI) => _ribbon = ribbonUI;
 
+        /// <summary>
+        /// Re-runs <see cref="ExportSheetButton_GetEnabled"/>. Called by
+        /// <see cref="ThisAddIn"/> on workbook/sheet changes so the button's
+        /// enabled state tracks whether a worksheet is active.
+        /// </summary>
+        public void InvalidateExportButton()
+        {
+            try { _ribbon?.InvalidateControl("ExportSheetButton"); }
+            catch { /* ribbon not ready yet; the next event will catch up */ }
+        }
+
         /// <summary>Enabled only when a worksheet is active.</summary>
         public bool ExportSheetButton_GetEnabled(IRibbonControl control)
         {
