@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnLoad">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabHome">
+        <group id="SheetToTxtGroup" label="Sheet to TXT">
+          <button id="ExportSheetButton"
+                  label="Export Sheet to .txt"
+                  size="large"
+                  imageMso="FileSaveAs"
+                  onAction="ExportSheetButton_OnAction"
+                  getEnabled="ExportSheetButton_GetEnabled"
+                  screentip="Export the active worksheet as a tab-delimited .txt file"
+                  supertip="Writes &lt;WorkbookName&gt;.txt into the same folder as the current workbook, using Excel's Text (Tab delimited) format." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

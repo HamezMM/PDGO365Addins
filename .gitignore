@@ -1,0 +1,40 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*_i.c
+*_p.c
+
+# VSTO generated deployment artifacts
+*.vsto
+*.manifest
+app.publish/
+publish/
+
+# Signing (keep test keys out of source control)
+*.pfx
+*.snk
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+
+# ReSharper / Rider
+_ReSharper*/
+*.DotSettings.user
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp

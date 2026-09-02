@@ -1,267 +1,202 @@
 # CLAUDE.md — PDGO365Addins
 
-Guidance for Claude Code when working in this repository.
+Build guidance for Claude Code. This repo builds **VSTO add-ins** (Visual Studio Tools
+for Office) — managed C#/.NET COM add-ins that load in-process with **desktop Office on
+Windows**, primarily **Excel**. They run with full trust: the whole Office object model,
+unrestricted file-system access, P/Invoke, any .NET library.
 
-## 1. Purpose
+This is **not** the Office.js / "Office Add-ins" web model. Ignore
+`learn.microsoft.com/office/dev/add-ins/` — the relevant docs are
+`learn.microsoft.com/visualstudio/vsto/`.
 
-This repo holds **custom Office Add-ins for the Microsoft 365 / Office suite** (Excel,
-Word, PowerPoint, Outlook, OneNote). Each add-in is a web application that runs inside an
-Office client and uses the **Office JavaScript API (Office.js)** to read and write
-document content, extend the Office UI, and call external services.
+## 1. Hard constraints
 
-The canonical Microsoft reference is
-<https://learn.microsoft.com/en-us/office/dev/add-ins/develop/develop-overview>. When a
-question is not answered here, consult Microsoft Learn under `/office/dev/add-ins/`
-rather than guessing — the platform changes frequently.
+- **Windows desktop only.** No Mac, no Excel on the web, no iPad.
+- **.NET Framework 4.8** (`TargetFrameworkVersion` `v4.8`). VSTO does not run on
+  .NET 5+/.NET Core. Do not try to migrate projects to SDK-style / `net8.0`.
+- **C#**, language version `9.0` (set in the `.csproj`). WinForms and WPF are available
+  for dialogs.
+- Every project is **AnyCPU**; the add-in loads into whatever bitness Excel is (this
+  machine: 64-bit). Never add x86/x64 build configs.
 
-## 2. Repository layout
+## 2. Prerequisites — READ BEFORE BUILDING
 
-One folder per add-in at the repo root. Do not mix two add-ins in one project folder.
-
-```
-PDGO365Addins/
-  <addin-name>/            # a single Yo Office project
-    manifest.xml           # (or manifest.json for unified manifest)
-    package.json
-    webpack.config.js
-    src/
-      taskpane/            # task pane HTML/CSS/TS + Office.onReady wiring
-      commands/            # ribbon button / function-command handlers
-    assets/                # icons referenced by the manifest (16/32/64/80 px)
-  CLAUDE.md
-  README.md
-```
-
-When creating a new add-in, scaffold it into its own subfolder (see §5).
-
-## 3. Anatomy of an Office Add-in
-
-Every add-in has **two parts**:
-
-1. **Manifest** — an XML or JSON file describing the add-in's identity, the Office apps it
-   runs in, permissions, UI integration (ribbon tabs/buttons, context menus), icon URLs,
-   and the URL of the web app. The manifest is the unit of sideloading and publishing.
-2. **Web application** — HTML/CSS/JS (or TypeScript/React) that renders task panes,
-   content add-ins, and dialogs, and calls Office.js. It is an ordinary web app: it can
-   also call REST services, do auth, etc. Must be served over **HTTPS**.
-
-The add-in has **no server-side component by default**. Add a middle tier only when you
-need SSO token exchange, secrets, or server-only APIs.
-
-## 4. Manifest: which type to use
-
-| Manifest | Format | File | Use when |
-| --- | --- | --- | --- |
-| **Add-in only manifest** | XML | `manifest.xml` | Default for **production Excel / Word / PowerPoint / OneNote / Project** add-ins today. |
-| **Unified manifest for Microsoft 365** | JSON | `manifest.json` | **Outlook** add-ins (recommended), or when the add-in ships alongside other M365 extensions (Teams tab, etc.) as one installable unit. Still **preview** for Excel/Word/PowerPoint — do not use for production in those hosts. |
-
-Rules:
-
-- **Raise the `Version` / `version` on every manifest change.** Deployed add-ins do not
-  update for users until the version increases (and admin re-consent is needed for
-  permission, scope, or event changes).
-- The add-in **`Id` must be a unique GUID**. Generate a fresh one per add-in; never reuse.
-- All URLs in the manifest (web app, icons) must be **HTTPS**. Icon-hosting servers must
-  not send `Cache-Control: no-store/no-cache`.
-- List every external domain the task pane navigates to under `AppDomains`
-  (`validDomains` in the unified manifest) or desktop Office opens it in a new browser
-  window instead of the pane.
-- Validate before every commit and before sideloading:
-  ```
-  npm run validate            # wraps office-addin-manifest validate
-  npx office-addin-manifest validate manifest.xml
-  ```
-
-## 5. Creating a new add-in (Yo Office)
-
-Node.js **Active LTS** and npm are prerequisites (this machine: Node 24, npm 11).
-
-```powershell
-npm install -g yo generator-office      # once; re-run to update
-cd C:\Users\JamesMckinnon\source\repos\PDGO365Addins
-yo office                               # run in PowerShell, NOT a bash shell
-```
-
-Yo Office prompts, in order:
-
-1. **Project type** — usually `Office Add-in Task Pane project`. Other options: React
-   variant, Excel Custom Functions (shared-runtime or JS-only), SSO, Nested App Auth,
-   `manifest only` (use when swapping bundler/framework, e.g. Vue).
-2. **Language** — prefer **TypeScript**.
-3. **Name** — becomes the folder name and the manifest display name.
-4. **Office application** — Excel, OneNote, Outlook, PowerPoint, Project, or Word. Pick
-   one; broaden the manifest later. **Outlook cannot be combined** with any other host.
-5. (Outlook only) **Manifest type** — choose unified manifest unless a needed feature is
-   XML-only.
-
-Non-interactive / scripted scaffold:
-```
-yo office --projectType taskpane --name "my-addin" --host excel --ts true --skip-install
-```
-`--details` lists all flags. After `--skip-install`, run `npm install` in the project folder.
-
-The generated project uses **webpack** + `webpack-dev-server` (HTTPS localhost, hot
-reload), a TS→ES5 transpiler, and ships a working "Hello World" task pane.
-
-## 6. Local development workflow
-
-Run these from inside the add-in's project folder:
-
-| Command | Purpose |
+| Requirement | This machine (checked 2026-09-01) |
 | --- | --- |
-| `npm start` | Build, start the dev server, **and sideload** the add-in into the desktop Office app chosen in the manifest. |
-| `npm run start:web` | Start for Office on the web (you supply the document URL). |
-| `npm stop` | Stop the dev server and remove the sideloaded add-in. |
-| `npm run build` | Production bundle into `dist/`. |
-| `npm run dev-server` | Dev server only, no sideload. |
-| `npm run lint` / `npm run lint:fix` | office-addin-lint (ESLint + Office rules). |
-| `npm run validate` | Validate the manifest. |
+| Visual Studio 2022 Community 17.14 | `C:\Program Files\Microsoft Visual Studio\2022\Community` |
+| **VS workload "Office/SharePoint development"** (`Microsoft.VisualStudio.Workload.Office`) | ❌ **NOT installed. Nothing builds until it is — see §3.** |
+| .NET Framework 4.8 targeting pack | ✅ |
+| VSTO Runtime v4 | ✅ |
+| Excel | Microsoft 365, 64-bit (`Office16`) |
+| MSBuild | `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe` |
 
-Sideloading details and manual sideload steps (Windows registry share, Mac, web,
-Teams/M365) are at `/office/dev/add-ins/testing/test-debug-office-add-ins`.
+## 3. Install the Office workload (one-time, required)
 
-**First run of the dev server** installs a local CA certificate
-(`office-addin-dev-certs`); accept the prompt or run `npx office-addin-dev-certs install`.
+The workload supplies `Microsoft.VisualStudio.Tools.Office.targets` (the VSTO build
+targets), the design-time assemblies the projects reference, and the project templates.
+`SheetToTxt.csproj` emits a clear build error if the targets are missing.
 
-### Debugging
+Claude cannot run this — **ask the user** to run one of:
 
-- **Task pane / commands**: `npm start` attaches the debugger; or use the browser
-  devtools of the embedded webview (`npm run start:desktop -- --debug-method web`).
-- **Script Lab** (free add-in from Microsoft Marketplace) — use it to prototype and
-  verify Office.js snippets interactively inside Excel/Word/PowerPoint before porting
-  code into the project.
-- Runtime/logging: `office-addin-debugging` handles start/stop; check its output for
-  sideload failures.
-
-## 7. Office.js programming model
-
-### Loading the library
-
-Reference the CDN in the `<head>` of every add-in HTML page (never bundle it, never
-self-host):
-
-```html
-<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-```
-
-Preview APIs: use `.../lib/beta/hosted/office.js` (never ship `beta` to production).
-
-### Initialization
-
-All Office.js access must wait for the host to be ready:
-
-```ts
-Office.onReady((info) => {
-  // info.host (Office.HostType), info.platform
-  document.getElementById("run")!.onclick = run;
-});
-```
-
-Do not call Office APIs at module top level.
-
-### Two API models
-
-- **Application-specific APIs** (`Excel`, `Word`, `PowerPoint`, `OneNote`) — strongly
-  typed, promise-based, **batched**. Prefer these when the host has them.
-
-  ```ts
-  await Excel.run(async (context) => {
-    const range = context.workbook.getSelectedRange();
-    range.load("address,values");          // queue a read
-    await context.sync();                  // execute the batch
-    console.log(range.address);
-    range.format.fill.color = "yellow";    // queue a write
-    await context.sync();
-  });
+- VS Installer GUI ▸ Modify ▸ check **Office/SharePoint development** ▸ Modify.
+- Elevated shell:
+  ```
+  "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify ^
+    --installPath "C:\Program Files\Microsoft Visual Studio\2022\Community" ^
+    --add Microsoft.VisualStudio.Workload.Office --includeRecommended --passive
   ```
 
-  Rules: `load()` only the properties you use; minimize `context.sync()` calls (each is a
-  round trip — the killer of add-in perf on the web); don't hold proxy objects across
-  `Excel.run` calls; handle `OfficeExtension.Error` (check `.code`).
+VS 2026+ deprecates the VSTO templates (the runtime stays supported). If the templates
+are gone, copy an existing project folder as the starting point (§6) instead of
+File ▸ New.
 
-- **Common APIs** (`Office.context.*`) — callback-based, one operation per request. Use
-  for cross-host features: `Office.context.document` (get/set selected data),
-  `Office.context.ui` (`displayDialogAsync`), `Office.context.roamingSettings` /
-  document settings, and **all Outlook mail APIs** (`Office.context.mailbox.item`).
+## 4. Anatomy of an add-in project
 
-### Requirement sets
+`SheetToTxt/` is the reference implementation. Every add-in follows this shape:
 
-Gate any API that isn't universally available:
+| File | Hand-maintained? | Role |
+| --- | --- | --- |
+| `<Name>.csproj` | ✅ yes | Classic (non-SDK) MSBuild project. `ProjectTypeGuids` = Office flavor + C#. Imports `Microsoft.VisualStudio.Tools.Office.targets`. `ProjectExtensions/FlavorProperties` tells VS it's a VSTO Excel project. |
+| `ThisAddIn.cs` | ✅ yes | The `ThisAddIn` partial class you edit: `ThisAddIn_Startup` / `_Shutdown`, and the `CreateRibbonExtensibilityObject` override that returns the ribbon. Also exposes `ThisAddIn.Instance` so feature code reaches `Application` without `Globals`. |
+| `ThisAddIn.Designer.cs` | ❌ generated | VSTO plumbing: base class `Microsoft.Office.Tools.AddInBase`, the `Application` field, `Globals`. The VSTO designer regenerates it from the `.xml` on build. Do not edit. |
+| `ThisAddIn.Designer.xml` | ❌ generated | "Blueprint" the designer reads to regenerate the `.cs`. Do not edit. |
+| `Ribbon/<Name>Ribbon.xml` | ✅ yes | `customUI` markup (namespace `http://schemas.microsoft.com/office/2006/01/customui`). **Build Action = Embedded Resource**, with an explicit `LogicalName` matching the string passed to `GetManifestResourceStream`. |
+| `Ribbon/<Name>Ribbon.cs` | ✅ yes | `[ComVisible(true)]` class implementing `Microsoft.Office.Core.IRibbonExtensibility`. `GetCustomUI` returns the embedded XML; `OnLoad` caches the `IRibbonUI`; one thin callback per control. |
+| `<Feature>.cs` | ✅ yes | The actual work (e.g. `SheetExporter`, `WorkbookLocation`). Ribbon callbacks stay thin — gather context, call the feature class, show the result/error. |
+| `Properties/AssemblyInfo.cs` | ✅ yes | `[assembly: Guid(...)]` is the add-in identity — unique per project. Bump `AssemblyVersion` on release. |
+| `app.config` | ✅ yes | `supportedRuntime v4.0 sku=".NETFramework,Version=v4.8"`. |
+| `packages.config` | ✅ yes | Empty by default — Office/VSTO assemblies come from the GAC via the build targets, not NuGet. |
 
-```ts
-if (Office.context.requirements.isSetSupported("ExcelApi", "1.7")) { /* ... */ }
+Repo root: `PDGO365Addins.sln` (one solution, one project per add-in), `.gitignore`
+(bin/obj, `.vs/`, `*.vsto`, `*.manifest`, `*.pfx`), `README.md`, this file.
+
+## 5. Build, run, debug
+
+```
+# from repo root, after the workload is installed
+& "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" `
+  PDGO365Addins.sln /t:Restore,Build /p:Configuration=Debug
 ```
 
-Also declare the minimum set in the manifest (`<Requirements>` / `extensions.requirements`)
-so the add-in isn't offered on hosts that can't run it. Per-host/version/platform
-support matrix: `/javascript/api/requirement-sets`.
+- **F5 in Visual Studio** is the normal loop: builds, writes the COM-add-in registry
+  keys under `HKCU\Software\Microsoft\Office\Excel\Addins\<Name>` (`LoadBehavior=3`,
+  `Manifest=…\<Name>.vsto|vstolocal`), launches Excel, attaches the managed debugger.
+- **A plain build already registers** the add-in for the current user. To unregister:
+  Build ▸ **Clean Solution** (or `msbuild /t:Clean`).
+- If Excel greys the add-in out after an unhandled exception: File ▸ Options ▸ Add-ins ▸
+  Manage **Disabled Items** and **COM Add-ins**, re-enable, restart Excel.
+- Add-in fails to load silently: check Windows Event Viewer ▸ Application, and confirm
+  `bin\Debug\<Name>.vsto` and `<Name>.dll.manifest` exist.
 
-## 8. Extending the Office UI
+## 6. Recipe — add a new add-in to the repo
 
-- **Add-in commands** — custom ribbon tab/group/buttons and context-menu items, defined
-  in the manifest (`<VersionOverrides>` in XML). A command either opens a task pane
-  (ShowTaskpane) or runs a JS function (ExecuteFunction) in the commands runtime.
-- **Task panes** — the main surface; a web page docked beside the document.
-- **Content add-ins** — embedded in the document body (Excel/PowerPoint), for
-  dashboards/visualizations.
-- **Dialogs** — `Office.context.ui.displayDialogAsync(url, options)`. The initial URL
-  must be same-origin as the add-in; use `messageParent` / `messageChild` to communicate.
-  Dialogs are the standard pattern for auth pop-ups.
+1. Copy `SheetToTxt/` to `<NewName>/`. Rename `SheetToTxt.csproj` → `<NewName>.csproj`.
+2. In the `.csproj`: new `<ProjectGuid>` (fresh GUID), set `RootNamespace` /
+   `AssemblyName` / `GeneratedCodeNamespace` (in `ProjectExtensions`) to `<NewName>`.
+3. In `AssemblyInfo.cs`: new `[assembly: Guid]`, update title/description.
+4. Rename the `namespace` in every `.cs`/`.xml` from `SheetToTxt` to `<NewName>`
+   (including `ThisAddIn.Designer.xml` `hostitem:namespace` and the ribbon
+   `LogicalName` / `GetManifestResourceStream` string).
+5. For a **non-Excel host** (Word/PowerPoint/Outlook): change `<OfficeApplication>`, the
+   `ProjectExtensions` `ApplicationType`/`HostName`/`DebugInfoExeName`, the interop
+   reference (`Microsoft.Office.Interop.Word` etc.), the designer's `factoryType` /
+   `hostObject` type, and the ribbon `tab idMso`. Easiest is to generate that project
+   from the VS template once the workload is installed and port the feature classes in.
+6. `dotnet sln PDGO365Addins.sln add <NewName>\<NewName>.csproj` — or add it in VS —
+   then add the same `{ProjectConfigurationPlatforms}` lines as the existing project.
 
-An add-in is not required to have UI (e.g. a Copilot-agent-only add-in).
+## 7. Recipe — add a feature + ribbon button
 
-## 9. Runtimes
+1. **Feature class**: `MyFeature.cs`, one public entry method that returns a small result
+   type or throws with a user-readable `Message`. Reach Excel via
+   `ThisAddIn.Instance.Application`. Follow the interop rules in §8.
+2. **Ribbon XML**: add a `<button>` inside the group in `Ribbon/<Name>Ribbon.xml`:
+   ```xml
+   <button id="MyFeatureButton" label="Do The Thing" size="large"
+           imageMso="FileSaveAs"
+           onAction="MyFeatureButton_OnAction"
+           getEnabled="MyFeatureButton_GetEnabled"
+           screentip="…" supertip="…" />
+   ```
+3. **Callbacks** in `Ribbon/<Name>Ribbon.cs` — names must match the XML exactly, must be
+   `public`, and the signatures must be exact (a wrong signature compiles but silently
+   does nothing — there is no IntelliSense for these):
+   - `onAction` (button): `public void Name(Office.IRibbonControl control)`
+   - `getEnabled`: `public bool Name(Office.IRibbonControl control)`
+   - `getImage`: `public stdole.IPictureDisp Name(Office.IRibbonControl control)`
+   - `onLoad` (customUI): `public void OnLoad(Office.IRibbonUI ribbon)`
+   Call `_ribbon.InvalidateControl("MyFeatureButton")` after state changes so
+   `getEnabled` re-runs.
+4. Wrap the callback body in try/catch (see §9).
 
-- **Shared runtime** — one persistent JS context across task pane + commands + custom
-  functions; needed for cross-surface state, ribbon enable/disable, lifecycle events.
-- **JavaScript-only runtime** — used by Excel custom functions without a shared runtime;
-  calculation-optimized, restricted API surface, different programming model
-  (`CustomFunctions.associate`).
-- Configure in the manifest; Yo Office asks which for custom-function projects.
+## 8. Office interop rules
 
-## 10. Coding conventions for this repo
+- **Main (STA) thread only.** Never call the object model from a `Task`, `Timer`, or
+  thread-pool callback. If you must do async work, capture `SynchronizationContext` on
+  startup and post back.
+- **No two-dot chains** on COM objects — `wb.Worksheets[1].Range["A1"]` leaks the
+  intermediate RCW. Assign each step to a local.
+- **Bulk cell access**: one `Range.Value2` get/set of an `object[,]` (1-based bounds; a
+  single cell comes back as a scalar, not an array). Never loop cell-by-cell. `Value2`
+  gives raw values; `.Text` gives the displayed string but is per-cell and slow.
+- To emit a sheet as delimited text, prefer letting Excel do it —
+  `Worksheet.Copy()` into a throwaway workbook then `Workbook.SaveAs(path,
+  XlFileFormat.xlTextWindows)` — instead of formatting values by hand. That's what
+  `SheetExporter` does.
+- Bracket document mutations with `Application.ScreenUpdating = false` and, if it
+  recalculates, `Application.Calculation = xlCalculationManual`; restore both in
+  `finally`. Same for `Application.DisplayAlerts` when calling `SaveAs`/`Close`.
+- `Marshal.ReleaseComObject` matters for long loops and burst-allocated objects; for a
+  one-shot ribbon command, GC at shutdown is acceptable. Be consistent within a feature.
+- Useful workbook members: `ActiveWorkbook.Path` (folder; `""` until first save),
+  `.FullName`, `.Name`; `ActiveSheet` cast to `Excel.Worksheet` (may be a chart sheet —
+  check).
 
-- **TypeScript** for all new add-ins. Keep `strict` on.
-- Keep the existing Yo Office toolchain (webpack, office-addin-* CLIs) unless there's a
-  strong reason — pick the `manifest only` template if you need a different stack.
-- Never commit `dist/`, `node_modules/`, or generated dev certs. Each project keeps its
-  own `.gitignore` from the template.
-- Keep secrets out of the client bundle. Client-side config that must vary by environment
-  goes through webpack `DefinePlugin` / `.env`, not hardcoded.
-- Match Microsoft's Fluent UI / Office design language for task-pane UI where practical.
-- Run `npm run lint` and `npm run validate` before committing an add-in.
+## 9. Error handling & UX
 
-## 11. Security & hosting requirements
+- **No exception may escape a ribbon callback** — Office can hard-disable the add-in.
+  Every callback: `try { … } catch (Exception ex) { MessageBox.Show(ex.Message, "<Add-in>",
+  MessageBoxButtons.OK, MessageBoxIcon.Warning); }`.
+- Throw `InvalidOperationException` with a plain-language message for expected failure
+  states (no workbook open, workbook unsaved, wrong sheet type). The callback shows
+  `ex.Message` directly, so write it for the end user.
+- `getEnabled` should catch internally and return `false` rather than throw.
+- Keep `ThisAddIn_Startup` fast — no I/O, no dialogs. Slow startup gets the add-in
+  disabled by Office's performance monitor.
 
-- **HTTPS everywhere** — web app, redirects, icons, external calls. Self-signed certs are
-  fine for localhost dev only.
-- Request the **least** manifest permission that works (`ReadDocument` <
-  `ReadWriteDocument`; Outlook has its own permission tiers). Permission increases force
-  admin re-consent on update.
-- For user identity, prefer **SSO** (`OfficeRuntime.auth.getAccessToken` / Nested App
-  Auth) over a custom OAuth dialog flow.
-- Any iframe inside the add-in that calls Office.js must have its domain listed in the
-  manifest or the call fails with permission-denied.
+## 10. Conventions
 
-## 12. Deployment
+- One feature = one class with a clear entry point. Ribbon and `ThisAddIn` stay thin.
+- Interop references use `EmbedInteropTypes = true` (type embedding) so an add-in isn't
+  pinned to one Office version's PIA.
+- Don't hand-edit `*.Designer.*`.
+- No secrets in source. Per-user config under `%APPDATA%\PDG\<AddInName>\`.
+- Match the C# style of the PDG Revit add-in repos (same team) —
+  see `..\PDGRevitAddinCollection`.
+- Every manifest/behavior change: bump `AssemblyVersion` and note it in the add-in's
+  `SETUP.md` / changelog.
 
-| Method | When |
+## 11. Deployment
+
+VSTO add-ins are activated by registry keys pointing Office at a `.vsto` deployment
+manifest.
+
+| Method | Use |
 | --- | --- |
-| **Sideloading** (`npm start`, or manual) | Dev/test only. |
-| **Integrated Apps portal** (M365 admin center) | Distribute internal add-ins to users/groups in the org — no client config. Primary path for PDG internal tools. |
-| **Centralized Deployment** (Exchange PowerShell / admin) | Org distribution in sovereign/gov clouds, or Outlook where Integrated Apps isn't available. |
-| **Microsoft Marketplace (AppSource)** | Public distribution; must pass Commercial Marketplace certification (works on all platforms your APIs support, support URL in manifest, valid GUID). |
-| **Network share / SharePoint catalog** | Legacy XML-manifest-only dev/on-prem options. Not for Outlook, not for production. |
+| **F5 / local build** | Dev only; registers for the current user. |
+| **ClickOnce** (VS ▸ Publish → network share) | Internal rollout to PDG staff; auto-updates on version bump. Manifests must be signed — VS makes a test cert; use a real code-signing cert for production. Set `SignManifests=true` + `ManifestCertificateThumbprint` in the `.csproj` for this. |
+| **MSI (WiX / Advanced Installer)** | When IT wants a per-machine managed package. The installer writes `HKLM\…\Office\Excel\Addins\<Name>` with `FriendlyName`, `Description`, `LoadBehavior=3`, `Manifest=<path>\<Name>.vsto|vstolocal`. |
 
-Reference: `/office/dev/add-ins/publish/publish`. Bump the manifest version on every
-deploy.
+End-user machines need the **VSTO Runtime** (ships with modern Office) and **.NET
+Framework 4.8** (in-box on Windows 10 1903+ / 11).
 
-## 13. Useful references
+## 12. References
 
-- Develop overview: <https://learn.microsoft.com/en-us/office/dev/add-ins/develop/develop-overview>
-- Yo Office: <https://learn.microsoft.com/en-us/office/dev/add-ins/develop/yeoman-generator-overview> · repo <https://github.com/OfficeDev/generator-office>
-- Manifest reference: `/office/dev/add-ins/develop/add-in-manifests`
-- Requirement sets / platform availability: `/javascript/api/requirement-sets`
-- Excel / Word / PowerPoint / Outlook API refs: `/javascript/api/{excel|word|powerpoint|outlook}`
-- Script Lab: <https://aka.ms/scriptlab>
-- Test & debug: `/office/dev/add-ins/testing/test-debug-office-add-ins`
+- VSTO docs root: <https://learn.microsoft.com/visualstudio/vsto/>
+- First Excel VSTO add-in: <https://learn.microsoft.com/visualstudio/vsto/walkthrough-creating-your-first-vsto-add-in-for-excel>
+- Program VSTO add-ins (ThisAddIn / Globals): <https://learn.microsoft.com/visualstudio/vsto/programming-vsto-add-ins>
+- Ribbon XML + callbacks: <https://learn.microsoft.com/visualstudio/vsto/ribbon-xml>
+- customUI element/attribute reference: <https://learn.microsoft.com/previous-versions/office/developer/office-2007/aa338199(v=office.12)>
+- Excel interop API: <https://learn.microsoft.com/dotnet/api/microsoft.office.interop.excel>
+- Deploy an Office solution: <https://learn.microsoft.com/visualstudio/vsto/deploying-an-office-solution>
+- Release COM objects: <https://learn.microsoft.com/visualstudio/vsto/systematically-releasing-objects>
