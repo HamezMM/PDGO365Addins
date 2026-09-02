@@ -55,6 +55,8 @@ namespace SheetToTxt.Ribbon
             try
             {
                 ExportResult result = new SheetExporter().ExportActiveSheet();
+                if (result == null) return; // user cancelled the "save as" prompt
+
                 MessageBox.Show(
                     $"Exported sheet \"{result.SheetName}\" to:{Environment.NewLine}{result.TargetPath}",
                     Title, MessageBoxButtons.OK, MessageBoxIcon.Information);

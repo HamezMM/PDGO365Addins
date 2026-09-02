@@ -1,8 +1,9 @@
 # SheetToTxt — setup
 
 Excel VSTO add-in. Adds a **Home ▸ Sheet to TXT ▸ Export Sheet to .txt** button that
-writes the active worksheet to `<WorkbookName>.txt` in the workbook's own folder, using
-Excel's "Text (Tab delimited)" format.
+writes the active worksheet to `<WorkbookName>.txt` using Excel's "Text (Tab delimited)"
+format — next to the workbook for a local/synced file, or via a *Save As* prompt for a
+cloud-only or never-saved workbook.
 
 ## One-time prerequisite (required before the project will build)
 
@@ -85,8 +86,14 @@ These files were authored without the VSTO templates installed, so the project s
 
 ## Notes on behavior
 
-- The workbook must be **saved to a real folder** first (a never-saved workbook, or a
-  cloud-only file with a URL path, is rejected with a clear message).
-- An existing `.txt` of the same name is **overwritten** silently.
+- **Normal / OneDrive-synced workbook:** the `.txt` is written next to the workbook with
+  the workbook's base name, no prompt. An existing `.txt` of the same name is overwritten
+  silently.
+- **Cloud-only workbook** (opened from SharePoint/OneDrive with no local sync) **or a
+  never-saved workbook:** there is no folder to write next to, so a *Save As* dialog opens
+  (default name `<WorkbookName>.txt`, default folder OneDrive if present else Documents).
+  The export is written locally; move/upload it to the cloud folder yourself if needed.
+  OneDrive-synced libraries are detected via `HKCU\Software\SyncEngines\Providers\OneDrive`
+  and still get the no-prompt path.
 - Export uses ANSI (system code page). For sheets with characters outside that code page,
   change `TextFormat` in `SheetExporter.cs` to `Excel.XlFileFormat.xlUnicodeText`.
