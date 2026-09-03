@@ -78,9 +78,10 @@ finally {
 }
 
 # --- drop the install helpers alongside ----------------------------------
-Copy-Item (Join-Path $PSScriptRoot 'PDG-CodeSigning.cer')    $PublishDir -Force
-Copy-Item (Join-Path $PSScriptRoot 'Install-SheetToTxt.ps1') $PublishDir -Force
+Copy-Item (Join-Path $PSScriptRoot 'PDG-CodeSigning.cer')      $PublishDir -Force
+Copy-Item (Join-Path $PSScriptRoot 'Install-SheetToTxt.ps1')   $PublishDir -Force
 Copy-Item (Join-Path $PSScriptRoot 'Uninstall-SheetToTxt.ps1') $PublishDir -Force
+Copy-Item (Join-Path $PSScriptRoot 'INSTALL.md')               $PublishDir -Force
 
 Write-Host "`nPublished. Contents of $PublishDir :"
 Get-ChildItem $PublishDir | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize

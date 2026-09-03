@@ -51,19 +51,9 @@ Existing installs pick the new version up automatically on next Excel launch
 
 ## Team install (self-service)
 
-Send people this:
-
-> 1. In File Explorer open
->    **Peake Design Group ▸ Peake Design - Documents ▸ SOFTWARE RESOURCES ▸ O365 ▸ SheetToTxt**
->    (the SharePoint folder — it should be synced; if not, open it in the browser and
->    "Add shortcut to OneDrive").
-> 2. Right-click **Install-SheetToTxt.ps1 ▸ Run with PowerShell**.
->    (If it's blocked: open PowerShell, run
->    `powershell -ExecutionPolicy Bypass -File "<that path>\Install-SheetToTxt.ps1"`.)
-> 3. Click **Install** on the "Customization Installer" prompt.
-> 4. Restart Excel. The **Home ▸ Export Sheet to .txt** button appears.
-
-To remove: run `Uninstall-SheetToTxt.ps1` from the same folder.
+Point people at **`INSTALL.md`** (published into the SheetToTxt folder alongside the
+installer). Short version: open the synced folder, run `Install-SheetToTxt.ps1`, click
+**Install**, restart Excel. `Uninstall-SheetToTxt.ps1` removes it.
 
 ## If SharePoint won't serve the ClickOnce update
 
