@@ -48,42 +48,29 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <!-- ClickOnce publish settings for team distribution. `msbuild /t:Publish` writes the
-       deployment (setup.exe, SheetToTxt.vsto, Application Files\) to PublishDir; put that
-       folder in the OneDrive-synced SharePoint location so it propagates to the team.
-       PublishDir is passed on the command line (it is a per-machine local path) by
-       deploy\Publish-SheetToTxt.ps1. Install/Update URLs are the https address of that
-       same SharePoint folder. Bump the version with the publish script. See deploy\README.md. -->
+       deployment (SheetToTxt.vsto, Application Files\) to PublishDir; put that folder in
+       the OneDrive-synced SharePoint location so it propagates to the team. PublishDir is
+       passed on the command line (it is a per-machine local path) by
+       deploy\Publish-SheetToTxt.ps1. Bump the version with the publish script.
+       No setup.exe / InstallUrl / UpdateUrl: a web bootstrapper downloads from the
+       SharePoint https URL, which answers 403 to the unauthenticated installer. Team
+       members instead run VSTOInstaller.exe on their LOCAL synced .vsto
+       (deploy\Install-SheetToTxt.ps1); the VSTO runtime then checks that same local
+       .vsto for updates each Office start, and OneDrive keeps it current.
+       See deploy\README.md. -->
   <PropertyGroup>
     <PublisherName>Peake Design</PublisherName>
     <ProductName>SheetToTxt</ProductName>
     <PublishUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</PublishUrl>
     <SupportUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</SupportUrl>
-    <InstallUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</InstallUrl>
-    <UpdateUrl>https://chesapeakeud.sharepoint.com/sites/Peake/Shared%20Documents/SOFTWARE%20RESOURCES/O365/SheetToTxt/</UpdateUrl>
-    <!-- VSTO forces install="false" in the .vsto; setup.exe carries InstallUrl instead
-         (needs IsWebBootstrapper=true). The VSTO runtime re-checks that URL every Office
-         start (UpdateInterval 0 when UpdateEnabled=true) and pulls new versions. -->
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <IsWebBootstrapper>true</IsWebBootstrapper>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <BootstrapperEnabled>false</BootstrapperEnabled>
     <SignatureAlgorithm>sha256RSA</SignatureAlgorithm>
     <ApplicationVersion>1.0.0.0</ApplicationVersion>
     <ApplicationRevision>0</ApplicationRevision>
   </PropertyGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.4.8">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.8</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.VSTORuntime.4.0">
-      <Visible>False</Visible>
-      <ProductName>Microsoft Visual Studio 2010 Tools for Office Runtime (x86 and x64)</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />

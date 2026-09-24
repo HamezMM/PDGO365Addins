@@ -220,11 +220,12 @@ manifest, which must be signed by a certificate the machine trusts.
 - One shared **PDG Code Signing** cert (`deploy/PDG-CodeSigning.cer` public; private
   `.pfx` outside the repo). `<ManifestCertificateThumbprint>` in the `.csproj` pins it.
 - `deploy/Publish-SheetToTxt.ps1` → `msbuild /t:Publish` (Release) into
-  `…\Peake Design - Documents\SOFTWARE RESOURCES\O365\SheetToTxt`. `IsWebBootstrapper=true`
-  bakes the https `InstallUrl` into `setup.exe`; the VSTO runtime re-checks it each Office
-  start and auto-updates (`UpdateInterval` 0).
+  `…\Peake Design - Documents\SOFTWARE RESOURCES\O365\SheetToTxt`. **No `setup.exe`**
+  (`BootstrapperEnabled=false`, no `InstallUrl`/`UpdateUrl`): SharePoint returns 403 to
+  installers that can't sign in, so any https install/update path fails.
 - Team runs `deploy/Install-SheetToTxt.ps1` from their synced copy: trusts the `.cer`
-  (CurrentUser Root + TrustedPublisher), runs `setup.exe`.
+  (CurrentUser Root + TrustedPublisher), then `VSTOInstaller.exe /i <local>\SheetToTxt.vsto`.
+  The VSTO runtime re-checks that local `.vsto` each Office start; OneDrive delivers updates.
 
 | Other method | Use |
 | --- | --- |

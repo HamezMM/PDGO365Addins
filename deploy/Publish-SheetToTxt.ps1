@@ -4,8 +4,10 @@
     synced SharePoint folder the team installs from.
 
 .DESCRIPTION
-    Runs `msbuild /t:Publish` (Release), which produces setup.exe, SheetToTxt.vsto and
-    Application Files\ under PublishDir. Also drops PDG-CodeSigning.cer and
+    Runs `msbuild /t:Publish` (Release), which produces SheetToTxt.vsto and
+    Application Files\ under PublishDir. No setup.exe: team members install from their
+    local synced .vsto with Install-SheetToTxt.ps1 (a web setup.exe gets 403 from
+    SharePoint). Any stale setup.exe left in PublishDir is removed. Also drops PDG-CodeSigning.cer and
     Install-SheetToTxt.ps1 next to it so a team member has everything in one folder.
 
     Prerequisites on the publishing machine:
@@ -76,6 +78,12 @@ try {
 finally {
     Remove-Item $rsp -ErrorAction SilentlyContinue
 }
+
+# --- remove the old web bootstrapper -------------------------------------
+# Earlier publishes shipped a setup.exe that downloads from the SharePoint URL and
+# fails with 403. Don't leave it where someone will double-click it.
+$staleSetup = Join-Path $PublishDir 'setup.exe'
+if (Test-Path $staleSetup) { Remove-Item $staleSetup -Force; Write-Host "Removed stale $staleSetup" }
 
 # --- drop the install helpers alongside ----------------------------------
 Copy-Item (Join-Path $PSScriptRoot 'PDG-CodeSigning.cer')      $PublishDir -Force

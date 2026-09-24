@@ -48,8 +48,8 @@ The button is greyed out until a worksheet is active (open a workbook first).
 
 ## Updates
 
-Automatic. When a new version is published, Excel picks it up the next time it starts —
-nothing for you to do.
+Automatic. When a new version is published, OneDrive syncs it to your PC and Excel picks
+it up the next time it starts — nothing for you to do. Keep the folder synced.
 
 ---
 
@@ -57,6 +57,8 @@ nothing for you to do.
 
 | Problem | Fix |
 | --- | --- |
+| **403 Forbidden** / installer can't download from SharePoint | You ran an old `setup.exe` or used a web link. Ignore `setup.exe` and use `Install-SheetToTxt.ps1` — it installs from the files already on your PC. |
+| "SheetToTxt.vsto not found" | OneDrive hasn't finished syncing the folder. Wait for the green ticks (or right-click the folder ▸ **Always keep on this device**), then re-run. |
 | "running scripts is disabled on this system" | Use the full `powershell -ExecutionPolicy Bypass -File "..."` command in step 2. |
 | No **Install** prompt / button never appears | Re-run the installer. Then in Excel: **File ▸ Options ▸ Add-ins**, set **Manage: COM Add-ins ▸ Go**, tick **SheetToTxt**. Also check **Manage: Disabled Items**. |
 | Button shows but stays greyed out | Open or create a workbook — it enables when a worksheet is active. |
