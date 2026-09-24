@@ -81,7 +81,10 @@ File ▸ New.
 
 ## 4. Anatomy of an add-in project
 
-`SheetToTxt/` is the reference implementation. Every add-in follows this shape:
+`SheetToTxt/` (Excel) is the reference implementation; `BracketFields/` (Word) is the
+reference for a **Word** host — copy it rather than SheetToTxt when starting a Word add-in
+(it already has the Word `.csproj` `ProjectExtensions`, `HostPackage`, designer types, and
+interop reference that §6 step 5 describes). Every add-in follows this shape:
 
 | File | Hand-maintained? | Role |
 | --- | --- | --- |
@@ -214,8 +217,10 @@ selected` = no signing cert on this machine. Fix per `SheetToTxt/SETUP.md`.
 VSTO add-ins are activated by registry keys pointing Office at a `.vsto` deployment
 manifest, which must be signed by a certificate the machine trusts.
 
-**SheetToTxt ships via ClickOnce → the synced SharePoint folder. Everything is in
-`deploy/` — see `deploy/README.md`.** In short:
+**SheetToTxt and BracketFields ship via ClickOnce → the synced SharePoint folder, one
+folder per add-in. Everything is in `deploy/` — see `deploy/README.md`.** A new add-in
+gets its own `Publish-/Install-/Uninstall-<Name>.ps1` + `INSTALL-<Name>.md` (copy the
+BracketFields set). In short (SheetToTxt as the example):
 
 - One shared **PDG Code Signing** cert (`deploy/PDG-CodeSigning.cer` public; private
   `.pfx` outside the repo). `<ManifestCertificateThumbprint>` in the `.csproj` pins it.

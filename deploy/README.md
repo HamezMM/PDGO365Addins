@@ -1,4 +1,16 @@
-# deploy/ — sharing SheetToTxt with the team
+# deploy/ — sharing the add-ins with the team
+
+Each add-in has its own `Publish-` / `Install-` / `Uninstall-<Name>.ps1` and team install
+guide, and publishes to its own folder under `SOFTWARE RESOURCES\O365\`:
+
+| Add-in | Host | Scripts | Team guide (published as `INSTALL.md`) | Publish folder |
+| --- | --- | --- | --- | --- |
+| SheetToTxt | Excel | `*-SheetToTxt.ps1` | `INSTALL.md` | `…\O365\SheetToTxt` |
+| BracketFields | Word | `*-BracketFields.ps1` | `INSTALL-BracketFields.md` | `…\O365\BracketFields` |
+
+Both are signed with the same PDG Code Signing cert, so a machine that trusts it for one
+trusts it for both. The rest of this page uses SheetToTxt as the example; substitute the
+add-in name for BracketFields.
 
 SheetToTxt is a **VSTO add-in**. Office only loads it if its deployment manifests are
 signed by a certificate the machine **trusts**, so distribution has two parts:
@@ -71,6 +83,6 @@ If OneDrive sync ever becomes the problem, publish to a plain file share
 
 1. `New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=PDG Code Signing, O=Peake Design, C=CA' -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -KeyLength 3072 -HashAlgorithm SHA256 -NotAfter (Get-Date).AddYears(5)`
 2. Export new `.cer` (commit) and `.pfx` (secure store).
-3. Update `<ManifestCertificateThumbprint>` in the `.csproj`, the thumbprints in
-   `Install-SheetToTxt.ps1` / `Uninstall-SheetToTxt.ps1`, and the table above.
-4. Publish a new version. Team re-runs `Install-SheetToTxt.ps1` (it re-trusts).
+3. Update `<ManifestCertificateThumbprint>` in **every** add-in's `.csproj`, the
+   thumbprints in all `Publish-*` / `Uninstall-*.ps1` scripts, and the table above.
+4. Publish a new version of each add-in. Team re-runs the `Install-*.ps1` (it re-trusts).

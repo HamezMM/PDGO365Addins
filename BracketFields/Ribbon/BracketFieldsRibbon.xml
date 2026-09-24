@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnLoad">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabHome">
+        <group id="BracketFieldsGroup" label="Bracket Fields">
+          <button id="FillFieldsButton"
+                  label="Fill [Fields]"
+                  size="large"
+                  imageMso="ReplaceDialog"
+                  onAction="FillFieldsButton_OnAction"
+                  getEnabled="FillFieldsButton_GetEnabled"
+                  screentip="Fill in the [bracketed] fields in this document"
+                  supertip="Finds every unique [bracketed] field in the document (body, headers, footers, footnotes, text boxes) and walks you through entering a value for each one. Every occurrence of a field is replaced, brackets included. One Undo reverts the whole fill." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
