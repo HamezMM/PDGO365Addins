@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnLoad">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabHome">
+        <group id="SpeakerRenameGroup" label="Speaker Rename">
+          <button id="RenameSpeakersButton"
+                  label="Rename Speakers"
+                  size="large"
+                  imageMso="ReplaceDialog"
+                  onAction="RenameSpeakersButton_OnAction"
+                  getEnabled="RenameSpeakersButton_GetEnabled"
+                  screentip="Rename the Speaker N labels in this document"
+                  supertip="Finds every unique 'Speaker N' label in the document (body, tables, headers, footers, footnotes, text boxes) and walks you through entering a name for each speaker number. Every occurrence of that label is replaced. One Undo reverts the whole rename." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

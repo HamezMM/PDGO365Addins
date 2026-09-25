@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SheetToTxt", "SheetToTxt\Sh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BracketFields", "BracketFields\BracketFields.csproj", "{8D830A40-B31F-4C5D-BA48-3265BAE46B1A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeakerRename", "SpeakerRename\SpeakerRename.csproj", "{2B954DBA-3F4F-43AF-B0D3-DE33C004DE2A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{8D830A40-B31F-4C5D-BA48-3265BAE46B1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D830A40-B31F-4C5D-BA48-3265BAE46B1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D830A40-B31F-4C5D-BA48-3265BAE46B1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B954DBA-3F4F-43AF-B0D3-DE33C004DE2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B954DBA-3F4F-43AF-B0D3-DE33C004DE2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B954DBA-3F4F-43AF-B0D3-DE33C004DE2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B954DBA-3F4F-43AF-B0D3-DE33C004DE2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

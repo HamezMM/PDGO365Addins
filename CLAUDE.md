@@ -217,8 +217,8 @@ selected` = no signing cert on this machine. Fix per `SheetToTxt/SETUP.md`.
 VSTO add-ins are activated by registry keys pointing Office at a `.vsto` deployment
 manifest, which must be signed by a certificate the machine trusts.
 
-**SheetToTxt and BracketFields ship via ClickOnce → the synced SharePoint folder, one
-folder per add-in. Everything is in `deploy/` — see `deploy/README.md`.** A new add-in
+**SheetToTxt, BracketFields, and SpeakerRename ship via ClickOnce → the synced SharePoint
+folder, one folder per add-in. Everything is in `deploy/` — see `deploy/README.md`.** A new add-in
 gets its own `Publish-/Install-/Uninstall-<Name>.ps1` + `INSTALL-<Name>.md` (copy the
 BracketFields set). In short (SheetToTxt as the example):
 

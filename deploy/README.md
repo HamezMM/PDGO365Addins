@@ -7,10 +7,11 @@ guide, and publishes to its own folder under `SOFTWARE RESOURCES\O365\`:
 | --- | --- | --- | --- | --- |
 | SheetToTxt | Excel | `*-SheetToTxt.ps1` | `INSTALL.md` | `…\O365\SheetToTxt` |
 | BracketFields | Word | `*-BracketFields.ps1` | `INSTALL-BracketFields.md` | `…\O365\BracketFields` |
+| SpeakerRename | Word | `*-SpeakerRename.ps1` | `INSTALL-SpeakerRename.md` | `…\O365\SpeakerRename` |
 
-Both are signed with the same PDG Code Signing cert, so a machine that trusts it for one
-trusts it for both. The rest of this page uses SheetToTxt as the example; substitute the
-add-in name for BracketFields.
+All three are signed with the same PDG Code Signing cert, so a machine that trusts it for
+one trusts it for all. The rest of this page uses SheetToTxt as the example; substitute
+the add-in name for BracketFields or SpeakerRename.
 
 SheetToTxt is a **VSTO add-in**. Office only loads it if its deployment manifests are
 signed by a certificate the machine **trusts**, so distribution has two parts:
